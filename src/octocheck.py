@@ -1,3 +1,11 @@
+# coding: utf-8
+"""
+This script parses the output of some linters, build and testing tools,
+and reports them as Checks to Github (https://github.blog/2018-05-07-introducing-checks-api/).
+This lets you annotate pull requests with richer results than pass/fail status.
+This script is useful for any type of CI service which doesn't have a built in
+Github App integration, for example Jenkins, Buildbot or any custom CI system.
+"""
 import abc
 import argparse
 import datetime
@@ -108,8 +116,11 @@ class Pep8Parser(Parser):
                 continue
             raw_message = ':'.join(msgparts)
             message = raw_message.strip()
-            # TODO: level mapping?
-            self.annotations.add(Annotation(path, int(line), int(line), 'warning', message, start_column=int(column), end_column=int(column)))
+            if message.startswith('E'):
+                level = 'failure'
+            else:
+                level = 'warning'
+            self.annotations.add(Annotation(path, int(line), int(line), level, message, start_column=int(column), end_column=int(column)))
             self.status = Status.FAILURE
 
 
@@ -121,7 +132,7 @@ class CargoJSONParser(Parser):
 
     @staticmethod
     def display_name():
-        return 'Cargo'
+        return 'Cargo JSON'
 
     def parse_fileobj(self, fileobj):
         for line in fileobj:
@@ -297,31 +308,84 @@ def _get_current_commit():
         return None
 
 _config = {
-    'app_id': dict(required=True, type=str),
-    'priv_key_file': dict(required=True, type=str),
-    'gh_owner': dict(required=True, type=str),
-    'gh_repo': dict(required=True, type=str),
-    'commit': dict(required=True, type=str, default=_get_current_commit()),
-    'add_prefix': dict(required=False, type=str),
-    'del_prefix': dict(required=False, type=str),
-    'check_name': dict(required=False, type=str, default='octocheck'),
-    'details_url': dict(required=False, type=str),
-    'title': dict(required=False, type=str, default='OctoCheck reporter'),
+    'app_id': {
+        'required': True,
+        'type': str,
+        'help': "Github App ID - get this from the Github App Developer Settings.",
+    },
+    'priv_key_file': {
+        'required': True,
+        'type': str,
+        'help': "Github App private key file - download this from the Github App Developer Settings.",
+    },
+    'gh_owner': {
+        'required': True,
+        'type': str,
+        'help': "Github repository owner (personal account or organisation).",
+    },
+    'gh_repo': {
+        'required': True,
+        'type': str,
+        'help': "Github repository name.",
+    },
+    'commit': {
+        'required': True,
+        'type': str,
+        'default': _get_current_commit(),
+        'help': "Git commit hash to submit the check for."
+                " Defaults to HEAD of the git repository in the current directory.",
+    },
+    'add_prefix': {
+        'required': False,
+        'type': str,
+        'help': "Add this prefix to all file paths being annotated."
+                " The resulting paths in the the annotations should be relative to the root of the Github repository.",
+    },
+    'del_prefix': {
+        'required': False,
+        'type': str,
+        'help': "Remove this prefix, if present, from all the file paths being annotated."
+                " Can be useful if your report files use absolute paths, or have paths prefixed with, e.g. './'."
+                " The resulting paths in the the annotations should be relative to the root of the Github repository.",
+    },
+    'check_name': {
+        'required': False,
+        'type': str,
+        'default': 'octocheck',
+        'help': "Name of this check, will be displayed in the Github UI.",
+    },
+    'details_url': {
+        'required': False,
+        'type': str,
+        'help': "A URL which will be displayed in the Github UI to see more details of this check."
+                " For example, if this is run as part of a CI build, you could put the URL to the CI build page.",
+    },
+    'title': {
+        'required': False,
+        'type': str,
+        'default': 'OctoCheck reporter',
+        'help': "The title of this check, will be displayed in the Github UI.",
+    },
 }
 _config.update({
-    p.arg_name(): dict(required=False, type=list)
+    p.arg_name(): {
+        'required': False,
+        'type': list,
+        'help': f"Glob pattern to find {p.display_name()} input files."
+    }
     for p in _parsers
 })
 
 
 def _get_argparser(config=_config):
-    argparser = argparse.ArgumentParser()
+    argparser = argparse.ArgumentParser(description=__doc__)
     for key, opts in config.items():
         ap_args = []
         ap_kwargs = {}
 
         ap_args.append('--{}'.format(key.replace('_', '-')))
         ap_kwargs['dest'] = key
+        ap_kwargs['help'] = opts['help']
 
         env_val = os.environ.get(f"OC_{key.upper()}")
         if env_val:
