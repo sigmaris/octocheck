@@ -6,6 +6,7 @@ setup(
     description='A reporter utility for Github Checks',
     author='Hugh Cole-Baker',
     author_email='sigmaris@gmail.com',
+    url="https://github.com/sigmaris/octocheck",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
