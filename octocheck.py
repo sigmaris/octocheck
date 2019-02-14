@@ -495,9 +495,6 @@ def cli():
         this_batch_output = dict(**output)
         this_batch_output['annotations'] = this_batch_annotations
         if check_run is None:
-            print(f"New check run, status = {overall_status.name.lower()}")
-            import pprint;
-            pprint.pprint(this_batch_annotations)
             utcnow = datetime.datetime.utcnow()
             check_run = repo.create_check_run(
                 name=args.check_name, head_sha=args.commit, details_url=args.details_url,
@@ -505,9 +502,6 @@ def cli():
                 output=this_batch_output
             )
         else:
-            print(f"Update check run {check_run.id}")
-            import pprint;
-            pprint.pprint(this_batch_annotations)
             check_run.update(output=this_batch_output)
 
 
