@@ -28,6 +28,7 @@ class Annotation(object):
 
     __slots__ = ('path', 'start_line', 'end_line', 'level', 'message',
                  'start_column', 'end_column', 'title', 'raw_details')
+
     def __init__(
             self, path, start_line, end_line, level, message,
             start_column=None, end_column=None, title=None, raw_details=None
@@ -120,7 +121,10 @@ class Pep8Parser(Parser):
                 level = 'failure'
             else:
                 level = 'warning'
-            self.annotations.add(Annotation(path, int(line), int(line), level, message, start_column=int(column), end_column=int(column)))
+            self.annotations.add(Annotation(
+                path, int(line), int(line), level, message,
+                start_column=int(column), end_column=int(column)
+            ))
             self.status = Status.FAILURE
 
 
@@ -233,7 +237,9 @@ class CargoJSONParser(Parser):
             if title:
                 optionals['title'] = title
 
-            self.annotations.add(Annotation(path, int(line_start), int(line_end), ann_level, label, **optionals))
+            self.annotations.add(Annotation(
+                path, int(line_start), int(line_end), ann_level, label, **optionals
+            ))
 
         children = message.get('children', [])
         for child in children:
@@ -294,7 +300,9 @@ class XUnitParser(Parser):
             Annotation(path, int(line), int(line), 'failure', message, **ann_kwargs)
         )
 
+
 _parsers = [CargoJSONParser, Pep8Parser, XUnitParser]
+
 
 def _get_current_commit():
     try:
@@ -304,8 +312,9 @@ def _get_current_commit():
             return sha
         else:
             return None
-    except:
+    except Exception:
         return None
+
 
 _config = {
     'app_id': {
@@ -413,23 +422,23 @@ def cli():
 
     try:
         gh_app.login_as_app(privkey_bytes, args.app_id)
-    except Exception as exc:
+    except Exception:
         return "Couldn't authenticate as a GitHub app"
 
     try:
         installation = gh_app.app_installation_for_repository(args.gh_owner, args.gh_repo)
-    except Exception as exc:
+    except Exception:
         return "Couldn't find an installation of this GitHub app on that repository"
 
     try:
         gh_inst = github3.GitHub()
         gh_inst.login_as_app_installation(privkey_bytes, args.app_id, installation.id)
-    except Exception as exc:
+    except Exception:
         return "Couldn't authenticate as app installation"
 
     try:
         repo = gh_inst.repository(args.gh_owner, args.gh_repo)
-    except Exception as exc:
+    except Exception:
         return "Couldn't find repository"
 
     parser_outputs = {
@@ -450,7 +459,9 @@ def cli():
                     outputs = parser_outputs[parser]
                     outputs['annotations'].update(anns)
                     display_name = parser.display_name()
-                    outputs['file_info'].add(f"{display_name} file {file}: {len(anns)} annotations, status {status.name}")
+                    outputs['file_info'].add(
+                        f"{display_name} file {file}: {len(anns)} annotations, status {status.name}"
+                    )
                     overall_status = max(overall_status, status)
 
     all_annotations = set(itertools.chain.from_iterable(o['annotations'] for o in parser_outputs.values()))
