@@ -256,6 +256,17 @@ class XUnitParser(Parser):
     def display_name():
         return 'xUnit'
 
+    def parse_file(self, file):
+        try:
+            if isinstance(file, str):
+                fileobj = open(file, 'rb')
+            else:
+                fileobj = file
+            self.parse_fileobj(fileobj)
+        finally:
+            if isinstance(file, str):
+                fileobj.close()
+
     def parse_fileobj(self, fileobj):
         root_elem = etree.fromstring(fileobj.read())
         if root_elem.tag == "testsuites":

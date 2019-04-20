@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='octocheck',
-    version='0.0.3',
+    version='0.0.4',
     description='A reporter utility for Github Checks',
     author='Hugh Cole-Baker',
     author_email='sigmaris@gmail.com',
